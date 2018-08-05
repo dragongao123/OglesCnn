@@ -1,0 +1,40 @@
+layout (local_size_x = X_SIZE, local_size_y = Y_SIZE, local_size_z = 1) in;
+
+uniform int params[13];  // kennel_shape[3] input_shape[3] output_shape[3] strides[2] padding active_type
+layout(binding = 0, rgba32f) readonly uniform image2D input_image;
+layout(binding = 1, rgba32f) writeonly uniform image2D output_image;
+layout(binding = 2, rgba32f) readonly uniform image2D kennel_image;
+layout(std430, binding = 0) buffer BufferObject {
+    int result_index[4*3*3*32*32*Z_GROUP];      //Z_GROUP
+};
+shared vec4 kennel[3][3];
+shared float result[32][32][3][3];
+void main() {
+     ivec3 pos = ivec3(gl_GlobalInvocationID.xyz);
+     vec4 data = imageLoad(input_image, index_in_texture);
+     input_data[pos.x][pos.y] = data;
+     if (pos.x < 3 && pos.y < 3){
+        kennel[pos.x][pos.y] = imageLoad(kennel_image, index_in_texture);
+     }
+     barrier();
+     for (int x =0; x< 3; x++) {
+        for (int y =0; y < 3; y++) {
+            result[pos.x][pos.y][x][y] = dot(data, kennel[x][y]);
+        }
+     }
+     barrier();
+     vec4 conv_reslut = vec4(0.0);
+     for (int i =0; i < 4;i++) {
+        for (int j=0; j < 9; x ++) {
+            int start_index = 0;
+            int result_index_in_x = start_index;
+            int result_index_in_y = start_index + 1;
+            int result_index_k_x = start_index + 2;
+            int result_index_k_y = start_index + 3;
+            if (result_index_k_x >0 && result_index_in_x < 32 && result_index_in_y >0 && result_index_in_y < 32) {
+                conv_reslut[i] += result[result_index_in_x][result_index_in_y][result_index_k_x][result_index_in_y];
+            }
+        }
+     }
+     imageStore(output_image, pos.xy,  conv_reslut);
+}
