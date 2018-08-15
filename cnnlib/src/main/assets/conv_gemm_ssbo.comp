@@ -20,9 +20,14 @@ void main(void)
     int output_shape[3] = int[3](params[6], params[7] , params[8]);
     int strides[2] = int[2](params[9], params[10]);
     int padding = params[11];
+
     int active_type = params[12];
     int align_channel = params[13];
+    int count = align_channel / 4;
+
     int output_area = output_shape[0] * output_shape[1];
+    int kennel_area = kennel_shape[0] * kennel_shape[1];
+
 
     ivec3 pos = ivec3(gl_GlobalInvocationID.xyz);
 
@@ -37,16 +42,31 @@ void main(void)
 
     ivec2 out_store_offset = out_offset[pos.z];
 
-
     if (delta >= 4) {
+        int conv_index0 = start_x_index * kennel_area;
+        int conv_index1 = conv_index0 + kennel_area;
+        int conv_index2 = conv_index1 + kennel_area;
+        int conv_index3 = conv_index2 + kennel_area;
+
+        for (int i =0; i < kennel_area; i++) {
+            for (int c=0; c< count; c++) {
+
+
+            }
+        }
+
+
 
 
 
     }else if (delta == 3) {
 
+
     } else if (delta == 2) {
 
+
     } else {
+
 
     }
 
