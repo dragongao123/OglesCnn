@@ -1,0 +1,84 @@
+layout (local_size_x = X_SIZE, local_size_y = Y_SIZE, local_size_z = Z_SIZE) in;
+
+uniform int params[14];  // kennel_shape[3] input_shape[3] output_shape[3] strides[2] padding active_type
+layout(binding = 0, rgba32f) readonly uniform image2D input_image;
+layout(binding = 1, rgba32f) writeonly uniform image2D output_image;
+layout(std430, binding = 0) buffer BufferObject {
+    ivec2 in_offset[IN_OFFSET_SIZE];
+    ivec2 out_offset[OUT_OFFSET_SIZE];
+    ivec2 convIndex[];
+};
+
+ivec2 getStartRelativeIndex(ivec3 pos, int[3] output_shape);
+ivec2 getOffsetRelativeIndex(ivec3 pos, int offset, int[3] output_shape);
+
+void main(void)
+{
+    // 分解参数
+    int kennel_shape[3] = int[3](params[0], params[1] , params[2]);
+    int input_shape[3] = int[3](params[3], params[4] , params[5]);
+    int output_shape[3] = int[3](params[6], params[7] , params[8]);
+    int strides[2] = int[2](params[9], params[10]);
+    int padding = params[11];
+    int active_type = params[12];
+    int align_channel = params[13];
+    int output_area = output_shape[0] * output_shape[1];
+
+    ivec3 pos = ivec3(gl_GlobalInvocationID.xyz);
+
+    int start_x_index = pos.x * 4;
+    int start_z_index = pos.z * 4;
+
+    if (start_x_index >= output_area || start_z_index >= output_shape[2]){
+        return;
+    }
+
+    int delta = output_area - start_x_index;
+
+    ivec2 out_store_offset = out_offset[pos.z];
+
+
+    if (delta >= 4) {
+
+
+
+    }else if (delta == 3) {
+
+    } else if (delta == 2) {
+
+    } else {
+
+    }
+
+
+
+
+
+
+
+
+    vec4 output_vec = vec4(float(convIndex[9214][0]), float(convIndex[9214][1]), float(convIndex[9215][0]),float(convIndex[9215][1]));
+
+
+    imageStore(output_image, pos.xy,  output_vec);
+}
+
+int alignBy4(int channel) {
+    int align = 4;
+    return (channel + (align - 1)) & ~(align - 1);
+}
+
+
+
+ivec2 getStartRelativeIndex(ivec3 pos, int[3] output_shape) {
+    int x = pos.x % output_shape[0];
+    int y = pos.x / output_shape[0];
+    return ivec2(x, y);
+}
+
+ivec2 getOffsetRelativeIndex(ivec3 pos, int offset, int[3] output_shape){
+    int x = (pos.x + offset) % output_shape[0];
+    int y = (pos.x + offset) / output_shape[0];
+    return ivec2(x, y);
+}
+

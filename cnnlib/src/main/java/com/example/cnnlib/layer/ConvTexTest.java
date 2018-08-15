@@ -9,6 +9,7 @@ import com.example.cnnlib.utils.NetUtils;
 import com.example.cnnlib.utils.ParamUnpacker;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,10 +19,10 @@ import static com.example.cnnlib.render.Render.initConvolutePro;
 
 /**
  * 使用 texture 存储kennel
- * 每个计算器同时计算出输出的4个通道上的数据  17.9 ~ 19.1
+ * 每个计算器同时计算出输出的4个通道上的数据
  * 注意：输入,输出,kennel的通道都必须4对齐
  */
-public class ConvTex extends Layer {
+public class ConvTexTest extends Layer {
 
     private static final String TAG = "ConvTex";
 
@@ -40,9 +41,10 @@ public class ConvTex extends Layer {
     private int mKennelAttachId;
 
     private int mStartY;
+    private int mOperatorBuffer;
 
 
-    public ConvTex(Context context, Layer preLayer, int kAmount, int k_w, int k_h, int pad, int stride_w, int stride_h, NonLinear.Type type, String kennelFilePath) {
+    public ConvTexTest(Context context, Layer preLayer, int kAmount, int k_w, int k_h, int pad, int stride_w, int stride_h, NonLinear.Type type, String kennelFilePath) {
         super(context, preLayer);
         this.mKennelShape = new int[]{k_w, k_h, preLayer.getOutputShape()[2]};
         this.mPadding = pad;
@@ -63,14 +65,13 @@ public class ConvTex extends Layer {
         return (length + 2 * mPadding - kennelLen) / stride + 1;
     }
 
-
     private void initConv() {
         int localSizeY = getCompShaderLocalSizeY(mOutputShape);
         mNumGroupsY = (int) Math.ceil(mOutputShape[1] * 1.0d / localSizeY);
-        int localSizeZ = getCompShaderLocalSizeZ(mOutputShape, 4);
-        mNumGroupsZ = (int) Math.ceil(mOutputShape[2] * 1.0d / (localSizeZ * 4));
+        int localSizeZ = 1;
+        mNumGroupsZ = mOutputShape[2] /4;
 
-        mShaderPro = initConvolutePro(mContext, "conv_tex.comp", mKennelShape, mOutputShape[2], mOutputShape[0], localSizeY, localSizeZ);
+        mShaderPro = initConvolutePro(mContext, "conv_test.comp", mKennelShape, mOutputShape[2], mOutputShape[0], localSizeY, localSizeZ);
         mAttachID = Layer.getDataAttachID();
         mOutTex = Render.createTexture();
 
@@ -79,11 +80,19 @@ public class ConvTex extends Layer {
 
         mStartY = Layer.getConvStartY(mOutputShape[1]);
         if (TextUtils.isEmpty(mKennelFilePath)) {
-            mKennels = loadKennels();
-        } else {
             mKennels = createTestKennels();
+        } else {
+            mKennels = loadKennels();
         }
         transferKennelToTex();
+
+
+        int[] operatorIndex = createOperatorIndex();
+
+        int kennelBufSize = operatorIndex.length;
+        mOperatorBuffer = Render.initKennelBuffer(kennelBufSize);
+        transferKennelToBuffer(operatorIndex);
+
 
         mParams = new int[14];
         int[] inputShape = mPreLayer.getOutputShape();
@@ -101,6 +110,31 @@ public class ConvTex extends Layer {
         mParams[11] = mPadding;
         mParams[12] = mType.index;
         mParams[13] = mStartY;
+    }
+
+    private void transferKennelToBuffer(int[] operatorIndex) {
+        Render.transferToBuffer(IntBuffer.wrap(operatorIndex), mOperatorBuffer, 0);
+    }
+
+    private int[] createOperatorIndex() {
+        int[] operatorIndex = new int[mOutputShape[0] * mOutputShape[1] * mKennelShape[0] * mKennelShape[1] * 4];
+
+        for (int out_w = 0; out_w < mOutputShape[0]; out_w++) {
+            for (int out_h = 0; out_h < mOutputShape[1]; out_h++) {
+                for (int k_w = 0; k_w < mKennelShape[0]; k_w++) {
+                    for (int k_h = 0; k_h < mKennelShape[1]; k_h++) {
+                        int current_in_index = out_w + out_h * mOutputShape[0];
+                        int current_k_index = k_w + k_h * mKennelShape[0];
+                        int start_index = current_in_index * 4 * mKennelShape[0] * mKennelShape[1] + 4 * current_k_index;
+                        operatorIndex[start_index] = -1 * mPadding + mStrides[0] * out_w;
+                        operatorIndex[start_index + 1] = -1 * mPadding + mStrides[1] * out_h;
+                        operatorIndex[start_index + 2] = k_w;
+                        operatorIndex[start_index + 3] = k_h;
+                    }
+                }
+            }
+        }
+        return operatorIndex;
     }
 
     private List<float[]> createTestKennels() {
@@ -153,12 +187,13 @@ public class ConvTex extends Layer {
 
     @Override
     protected void bindTextureAndBuffer() {
-        Render.bindTextureAndBuffer(mOutTex, mAttachID);
+        Render.bindTextureAndBuffer(mOutTex, mAttachID, mOperatorBuffer);
+
     }
 
     @Override
     protected void actualForwardProc(float[][][] input) {
-        Render.performConvoluteTex(mShaderPro, mParams, mPreLayer.getOutTex(), mOutTex, mKennelTex, mNumGroupsY, mNumGroupsZ);
+        Render.performConvoluteTexTest(mShaderPro, mParams, mPreLayer.getOutTex(), mOutTex, mKennelTex, mOperatorBuffer, mNumGroupsY, mNumGroupsZ);
     }
 
 }

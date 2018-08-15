@@ -28,6 +28,7 @@ import static android.opengl.GLES31.GL_COLOR_ATTACHMENT0;
 import static android.opengl.GLES31.GL_COMPUTE_SHADER;
 import static android.opengl.GLES31.GL_FLOAT;
 import static android.opengl.GLES31.GL_LINEAR;
+import static android.opengl.GLES31.GL_MAX_COMPUTE_SHARED_MEMORY_SIZE;
 import static android.opengl.GLES31.GL_READ_ONLY;
 import static android.opengl.GLES31.GL_RGBA;
 import static android.opengl.GLES31.GL_RGBA32F;
@@ -67,6 +68,12 @@ public class Render {
     public static int getMaxDrawBuffers() {
         int[] maxBuffer = new int[1];
         glGetIntegerv(GL_MAX_DRAW_BUFFERS, maxBuffer, 0);
+        return maxBuffer[0];
+    }
+
+    public static int getMaxCompSharedSize() {
+        int[] maxBuffer = new int[1];
+        glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, maxBuffer, 0);
         return maxBuffer[0];
     }
 
@@ -125,6 +132,14 @@ public class Render {
         return compProg;
     }
 
+    public static int initCompPro(String source) {
+        int compProg = GLES31.glCreateProgram();
+        ShaderUtils.vglAttachShaderSource(compProg, GL_COMPUTE_SHADER, source);
+        glLinkProgram(compProg);
+        return compProg;
+    }
+
+
     public static int createTexture() {
         return createTexture(S_TEXTURE_SIZE, S_TEXTURE_SIZE);
     }
@@ -172,15 +187,28 @@ public class Render {
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 
-    public static void performConvoluteSSBO(int compProg, int[] params, int inTex, int outTex, int buffer, int numGroupsY, int numGroupsZ) {
+    public static void performConvoluteTexTest(int compProg, int[] params, int inTex, int outTex, int buffer, int operator, int numGroupsY, int numGroupsZ) {
         glUseProgram(compProg);
         glUniform1iv(glGetUniformLocation(compProg, "params"), params.length, params, 0);
 
         glBindImageTexture(0, inTex, 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
         glBindImageTexture(1, outTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
+        glBindImageTexture(2, buffer, 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, operator);
 
         glDispatchCompute(1, numGroupsY, numGroupsZ);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+
+    public static void performConvoluteSSBO(int compProg, int[] params, int inTex, int outTex, int bufferId, int numGroupsX, int numGroupsY, int numGroupsZ) {
+        glUseProgram(compProg);
+        glUniform1iv(glGetUniformLocation(compProg, "params"), params.length, params, 0);
+
+        glBindImageTexture(0, inTex, 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+        glBindImageTexture(1, outTex, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bufferId);
+
+        glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 

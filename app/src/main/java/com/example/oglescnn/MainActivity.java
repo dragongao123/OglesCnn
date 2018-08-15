@@ -6,7 +6,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.example.cnnlib.CnnNetwork;
+import com.example.cnnlib.layer.ConvGEMM;
 import com.example.cnnlib.layer.ConvSSBO;
+import com.example.cnnlib.layer.ConvTexTest;
 import com.example.cnnlib.layer.Flat;
 import com.example.cnnlib.layer.FullConnSSBO;
 import com.example.cnnlib.layer.Input;
@@ -30,23 +32,48 @@ public class MainActivity extends AppCompatActivity {
 
 //        buildNet();
 //        buildLetNet();
-        buildTestNet();
+//        buildTestNet();
+        buildGemmNet();
+    }
+
+    private void buildGemmNet() {
+        mCnnNetwork = new CnnNetwork(this);
+
+        Layer in = new Input(this, 32, 32, 4);
+        mCnnNetwork.addLayer(in);
+
+        Layer conv1 = new ConvGEMM(this, in, 64, 3, 3, 1, 1, 1, NonLinear.Type.RELU, "");
+        mCnnNetwork.addLayer(conv1);
+
+        mCnnNetwork.initialize();
     }
 
     private void buildTestNet() {
         mCnnNetwork = new CnnNetwork(this);
 
-        Layer in = new Input(this, 32, 32, 3);
+        Layer in = new Input(this, 32, 32, 4);
         mCnnNetwork.addLayer(in);
 
-        Layer conv1 = new ConvSSBO(this, in, 6, 5, 5, 2, 1, 1, NonLinear.Type.RELU, "");
+        Layer conv1 = new ConvSSBO(this, in, 64, 3, 3, 1, 1, 1, NonLinear.Type.RELU, "");
         mCnnNetwork.addLayer(conv1);
 
         Layer pool1 = new Pooling(this, conv1, 2, 2, 2, 2);
         mCnnNetwork.addLayer(pool1);
 
-        Layer conv2 = new ConvSSBO(this, pool1, 16, 5, 5, 2, 1, 1, NonLinear.Type.RELU, "");
+        Layer conv2 = new ConvSSBO(this, pool1, 256, 3, 3, 1, 1, 1, NonLinear.Type.RELU, "");
         mCnnNetwork.addLayer(conv2);
+
+        Layer pool2 = new Pooling(this, conv2, 2, 2, 2, 2);
+        mCnnNetwork.addLayer(pool2);
+
+        Layer conv3 = new ConvSSBO(this, pool2, 256, 3, 3, 1, 1, 1, NonLinear.Type.RELU, "");
+        mCnnNetwork.addLayer(conv3);
+
+        Layer pool3 = new Pooling(this, conv3, 2, 2, 2, 2);
+        mCnnNetwork.addLayer(pool3);
+
+        Flat flat = new Flat(this, pool3);
+        mCnnNetwork.addLayer(flat);
 
         mCnnNetwork.initialize();
     }
@@ -97,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void performCNN(View view) {
-        float[][][] input = DataUtils.createInputBuffer(new int[]{32, 32, 3});
+        float[][][] input = DataUtils.createInputBuffer(new int[]{32, 32, 4});
 //        float[][][] input = testUtils.getTestImage(this);
         mCnnNetwork.predict(input);
     }

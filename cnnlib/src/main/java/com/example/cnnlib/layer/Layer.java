@@ -6,6 +6,7 @@ public abstract class Layer {
 
     protected Context mContext;
     protected Layer mPreLayer;
+    protected int[] mInputShape;
     protected int[] mOutputShape;
 
     protected int mOutTex;
@@ -30,10 +31,16 @@ public abstract class Layer {
         return startY;
     }
 
+    public Layer(Context context, int w, int h, int c) {
+        this.mContext = context;
+        this.mPreLayer = null;
+        this.mInputShape = new int[]{w, h, c};
+    }
 
     public Layer(Context context, Layer preLayer) {
         this.mContext = context;
         this.mPreLayer = preLayer;
+        this.mInputShape = preLayer.getOutputShape();
     }
 
 

@@ -20,7 +20,7 @@ public class DataUtils {
         for (int c = 0; c < channel; c++) {
             for (int w = 0; w < width; w++) {
                 for (int h = 0; h < height; h++) {
-                    input[c][h][w] = channel * (h * width + w) + c;
+                    input[c][h][w] = w;
                 }
             }
         }

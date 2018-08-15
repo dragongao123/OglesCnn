@@ -1,5 +1,6 @@
 package com.example.cnnlib.eglenv;
 
+import android.opengl.GLES31;
 import android.os.Handler;
 import android.os.HandlerThread;
 
@@ -32,7 +33,9 @@ public class GLES31BackEnv {
             mEGLHelper = new EGLHelper();
             mEGLHelper.eglInit(width, height);
             initFBO();
+            int maxCompSharedSize = Render.getMaxCompSharedSize();
             Render.getMaxDrawBuffers();
+
         });
     }
 

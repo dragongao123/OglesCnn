@@ -60,7 +60,6 @@ public class ConvSSBO extends Layer {
         return (length + 2 * mPadding - kennelLen) / stride + 1;
     }
 
-
     private void initConv() {
         int localSizeY = getCompShaderLocalSizeY(mOutputShape);
         mNumGroupsY = (int) Math.ceil(mOutputShape[1] * 1.0d / localSizeY);
@@ -152,7 +151,7 @@ public class ConvSSBO extends Layer {
 
     @Override
     protected void actualForwardProc(float[][][] input) {
-        Render.performConvoluteSSBO(mShaderPro, mParams, mPreLayer.getOutTex(), mOutTex, mKennelBuffer[0], mNumGroupsY, mNumGroupsZ);
+        Render.performConvoluteSSBO(mShaderPro, mParams, mPreLayer.getOutTex(), mOutTex, mKennelBuffer[0], 1, mNumGroupsY, mNumGroupsZ);
     }
 
 }
