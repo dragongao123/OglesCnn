@@ -148,7 +148,7 @@ public class ConvGEMM extends Layer {
         }
 
         int[] inOffsetIndexes = new int[inOffsetSize * 2];
-        for (int num = 0; num < outOffsetSize; num++) {
+        for (int num = 0; num < inOffsetSize; num++) {
             int[] featureMapIndexInTexture = getFeatureMapIndexInTexture(num, mInputShape[0]);
             inOffsetIndexes[num * 2] = featureMapIndexInTexture[0] * mInputShape[0];
             inOffsetIndexes[num * 2 + 1] = featureMapIndexInTexture[1] * mInputShape[1];
